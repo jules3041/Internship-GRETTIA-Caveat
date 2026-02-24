@@ -1,194 +1,113 @@
-<!--- the "--8<--" html comments define what part of the README to add to the index page of the documentation -->
-<!--- --8<-- [start:docs] -->
-![caveat](resources/logos/title.png)
+﻿# GRETTIA Internship Portfolio: Household Interaction-Aware CVAE (CAVEAT Adaptation)
 
-Deep learning for modelling human activity schedules.
+This repository is a **portfolio snapshot** of my internship work at the GRETTIA lab (Université Gustave Eiffel). It summarizes and packages what I implemented on top of the upstream **CAVEAT** project to model **household-level interactions** in activity schedules.
 
-[![Daily CI Build](https://github.com/big-ucl/caveat/actions/workflows/daily-scheduled-ci.yml/badge.svg)](https://github.com/big-ucl/caveat/actions/workflows/daily-scheduled-ci.yml)
-[![Documentation](https://github.com/big-ucl/caveat/actions/workflows/pages/pages-build-deployment/badge.svg)](https://big-ucl.github.io/caveat)
+This is **not** the official upstream repository. Some internship-specific elements (e.g., internal data or non-shareable assets) are intentionally **not included**.
 
-Caveat is for building and evaluating models of human activity schedules. Activity schedules are a useful representation of human behaviours, used for modelling transport, energy and epidemiological systems.
+**Upstream base:** https://github.com/big-ucl/caveat (MIT), referenced at commit `af99a43`.
 
-Activity scheduling is required component of activity-based models. But Caveat also has application for (i) diverse upsampling, (ii) bias correction, (iii) simple forecasting.
+## Project goal
 
-## Motivation
+The internship objective was to extend CAVEAT so that a VAE/CVAE can model not only individual activity schedules, but also **explicit household interactions** (e.g., joint activities / joint trips) between members.
 
-The core motivation or philosophy behind Caveat is that people behave in diverse ways, well beyond what is currently represented with existing modelling approaches. If you often grumble about existing human behavioral models being *too complex*, *slow* or *unrealistic* then Caveat may be of interest. We introduce generative modelling ideas (stollen perhaps from the fancy genAI domain but scaled down and carefully crafted for human modelling) so that we can better represent real human behavioral diversity.
+In practice, I focused on:
+- discrete schedule encoding,
+- CNN-based encoder/decoder variants,
+- household-level modelling,
+- interaction-aware conditioning and supervision,
+- a hierarchical CVAE design for coordination between household members.
 
-We also add focus on the distribution of outputs rather than simple key metrics or expectations. If you think distributions matter, that everyone should be fairly represented, then you might like our work.
+## Internship additions: architectures
 
-Also, with access to even a *somewhat* modern GPU, our models can be trained in minutes and take seconds to run for national scale populations.
+I implemented and compared several household-oriented variants, culminating in a **hierarchical household CVAE** with interaction supervision and cross-member masked attention.
 
-## Research
+Key ideas:
+- **Household discrete VAE/CVAE variants** using CNN blocks for household tensors *(members × time × activities)*.
+- **Interaction-aware CVAE** with a dual output branch:
+  - schedule logits (activity generation),
+  - interaction logits (explicit supervision signal for interaction events).
+- **Cross-member masked attention** to let each member attend to other household members while:
+  - masking padded/absent members,
+  - excluding self-pairs,
+  - using gated/residual updates for stability.
+- **Hierarchical CVAE mode** (`use_hierarchical`) with coordination and individual latents to separate:
+  - household-level coordination,
+  - member-level behaviour.
+- **Social loss handling** with configurable weighting and imbalance options (`social_loss_weight`, `social_inter_pos_weight`, etc.).
 
-Caveat is part of an ongoing research project. Overview of presented work can be found in the [papers](https://github.com/big-ucl/caveat/blob/main/papers/README.md) module, including key information allowing presented results to be **reproduced**.
+Model variants added/adapted:
+- `household_discCNN_VAE`
+- `household_discCNN_VAE_enhanced`
+- `household_discCNN_CVAE`
+- `household_discCNN_CVAE_attention`
+- `household_discCNN_CVAE_att_interactions`
+- `household_discCNN_CVAE_fullattention_interactions`
 
-We currently have published work using Caveat for generative modelling/synthesis of activity schedules - **Synthesising activity participations and scheduling with deep generative machine learning**, available [here](https://www.sciencedirect.com/science/article/pii/S0968090X25002773) or [here](https://arxiv.org/abs/2501.10221). Please consider referencing us:
+## Evaluations added
 
-```
-@article{SHONE,
-title = {Synthesising activity participations and scheduling with deep generative machine learning},
-journal = {Transportation Research Part C: Emerging Technologies},
-volume = {179},
-pages = {105273},
-year = {2025},
-issn = {0968-090X},
-doi = {https://doi.org/10.1016/j.trc.2025.105273},
-url = {https://www.sciencedirect.com/science/article/pii/S0968090X25002773},
-author = {Fred Shone and Tim Hillel},
-}
-```
+### Interaction overlap evaluation
 
-## Example Applications
+I added an evaluator (`caveat/evaluate/interaction_overlap_evaluator.py`) that measures interaction quality **directly from predicted vs supervised interaction signals**, rather than only inferring joint behaviour from schedules.
 
-**Generation** for up-sampling or anonymisation an observed population of activity schedules:
-- `caveat run configs/example_run.yaml` - train a generative model using an observed population of schedules, sample a new synthetic population of schedules, and evaluate it's quality.
+Supported inputs:
+- `test_inference` outputs (`interaction_probs.csv`, `interaction_targets.csv`, `interaction_mask.csv`)
+- interval CSV files for reference/model interactions
 
-**Conditional Generation** for bias correction and simple forecasting or modelling from an observed population of schedules and attributes:
-- `caveat run configs/example_run_conditional.yaml` - train a model using an observed population of schedules with attributes, sample a new population conditional on new person attributes, and evaluate it's quality.
+### Metrics / outputs
 
-## Quick Start
+- joint trip / joint activity counts
+- distribution comparisons for interaction-related behaviour (with EMD summaries), including:
+  - joint activity duration
+  - joint activity start time
+  - joint trip start time
+- latent analysis (posterior/prior diagnostics):
+  - µ density plots
+  - correlation analysis
+  - shape diagnostics
+  - UMAP projections
 
-Once [installed](#installation) get started using `caveat --help`.
+Many evaluation metrics follow the methodology in:
+Shone, F. & Hillel, T. (2025). *Synthesising activity participations and scheduling with deep generative machine learning*. Transportation Research Part C, 179, 105273. DOI: 10.1016/j.trc.2025.105273
 
-Caveat provides various commands to facilitate rapid and reproducible experiments. Outputs are written to the (default) `logs` directory.
 
-### Run
+## Why this matters
 
-`caveat run --help`
+This work moves from individual schedule generation toward **household-level generative modelling with explicit interaction structure**, which is more realistic for many mobility/activity applications.
 
-Train and evaluate a model. The run data, encoder, model and other parameters are controlled using a run config. For example:
+## Citation
 
-- `caveat run configs/example_run.yaml`
-- `caveat run configs/example_run_conditional.yaml` (conditional generation)
+If you cite the original framework/research, please use the upstream CAVEAT citation metadata (`CITATION.cff`) from:
+- https://github.com/big-ucl/caveat
 
-### Batch
 
-`caveat batch --help`
+## Installation (for this portfolio snapshot)
 
-Batch allows training and comparison of multiple models and/or hyper-params as per a batch config. For example:
+Follow the **installation steps from the upstream CAVEAT repository** first (environment creation + editable install), because this work is built on top of that codebase and tooling.
 
-- `caveat batch configs/example_batch.yaml`
-- `caveat batch configs/example_batch_conditional.yaml` (conditional generation)
+Then, in this repo clone, run the household discrete training entrypoint:
 
-### Nrun
-
-`caveat nrun --help`
-
-Nrun is a simplified version of batch used to repeat the same model training and evaluation. This is intended to test for variance in model training and sampling. For example, run and evaluate the variance of _n=3_ of the same experiment using:
-
-- `caveat nrun configs/example_run.yaml --n 3`
-
-The config is as per a regular run config but `seed` is ignored.
-
-### Ngen
-
-`caveat ngen --help`
-
-As per nrun but only assesses variance from the sampling/generative process (not model training):
-
-- `caveat ngen configs/example_run.yaml --n 3`
-
-### Evaluate
-
-`caveat eval --help`
-
-Evaluate the outputs of an existing run (or batch using `-b`):
-
-- `caveat eval configs/example_run.yaml`
-- `caveat eval configs/example_batch_conditional.yaml -b` (conditional evaluation of batch)
-
-### Tune
-
-`caveat tune --help`
-
-Carry out hyper-parameter tuning using optuna. See the example config `config/example_tune.yaml`. Tuning runs are recorded in `optuna.db` and can be reviewed via [optuna-dashboard](https://optuna-dashboard.readthedocs.io/en/latest/getting-started.html).
-
-### Label, joint and multi-model models
-
-We have some fancy model variations for predicting labels from schedules, joint generation of schedules and associated labels, and multi-model runs (segmenting and training a model per label).
-
-`caveat lrun --help`
-
-`caveat jrun --help`
-
-`caveat jbatch --help`
-
-`caveat mmrun --help`
-
-### Logging
-
-Caveat writes tensorboard logs to a (default) `logs/` directory. Monitor or review training progress using `tensorboard --logdir=logs`.
-
-## Configuration
-
-For help with configuration refer to our [documentation](https://big-ucl.github.io/caveat/latest/configuration).
-
-## Installation
-
-To install caveat, we recommend using the [mamba](https://mamba.readthedocs.io/en/latest/index.html) package manager:
-
-<!--- --8<-- [start:docs-install-dev] -->
-``` shell
-git clone git@github.com:big-ucl/caveat.git
-cd caveat
-mamba create -n caveat -c conda-forge -c city-modelling-lab -c pytorch --file requirements/base.txt --file requirements/dev.txt
-mamba activate caveat
-pip install --no-deps -e .
+```bash
+python -m caveat.train_hh_disc --config configs/household_discCNN_VAE.yaml
 ```
 
-Caveat is in development, hence an "editable" (`-e`) install is recommended.
+For my internship models, use one of the household interaction-aware configs, for example:
 
-### Jupyter Notebooks
-
-To run the example notebooks you will need to add a ipython kernel into the mamba environemnt: `ipython kernel install --user --name=caveat`.
-
-### GPU?
-Feeling slow? Maybe you're not utilising your GPU. Torch is no longer keeping its conda channel up to date! So it's possible that you need to pip install.
-
-First check if your GPU is available to pytorch, for example:
-
-'''{python}
-import torch
-assert torch.cuda.is_available()
-'''
-
-If not then you can pip install (but do so after activating the mamba env) using commands from [here](https://pytorch.org/get-started/locally/).
-
-### Windows Installation with CUDA
-
-Based on the above the following may be redundant now.
-
-If you want to get a cuda enabled windows install you can try the following mamba create:
-```
-mamba create -n caveat -c conda-forge -c city-modelling-lab -c pytorch -c nvidia --file requirements/cuda_base.txt --file requirements/dev.txt
-```
-Or lake a look [here](https://pytorch.org/get-started/locally/). Note that you need to have the right version of python.
-<!--- --8<-- [end:docs-install-dev] -->
-For more detailed instructions, see our [documentation](https://big-ucl.github.io/caveat/latest/installation/).
-
-### Optuna
-Optuna is also a bit finickety. Specifically it seems to be ahead of the grpcio version available on conda-forge. Breaking the mamba build. Current work around is to pip install within the mamba env `pip install grpcio==1.70.0`. To make sure that this version is used, make sure to use the dev build which includes a conda-forge pip, ensuring everything is discovered correctly.
-
-## Contributing
-
-Note that caveat is work in progress, we maintain example config files but these can be affected by breaking changes. If you find an issue with an example config please report it.
-
-See our [documentation](https://big-ucl.github.io/caveat/latest/contributing/) for additional guides on contribution inclusing reporting problems.
-
-## Building the documentation
-
-If you are unable to access the online documentation, you can build the documentation locally.
-First, [install a development environment of caveat](https://big-ucl.github.io/caveat/latest/installation/), then deploy the documentation using [mike](https://github.com/jimporter/mike):
-
-```
-mike deploy develop
-mike serve
+```bash
+python -m caveat.train_hh_disc --config configs/household_discCNN_CVAE_attention_interactions.yaml
+python -m caveat.train_hh_disc --config configs/household_discCNN_CVAE_attention_interactions_hierarchical.yaml
+python -m caveat.train_hh_disc --config configs/household_discCNN_CVAE_fullattention_interactions_hierarchical.yaml
 ```
 
-Then you can view the documentation in a browser at http://localhost:8000/.
+Notes:
+- `caveat/train_hh_disc.py` is the main entrypoint for the household discrete models added/adapted during the internship.
+- It supports training and checkpoint-based runs (`--mode train` or `--mode ckpt`) with optional inference/generation/evaluation flags.
+- Use the config file to select the architecture variant (`VAE`, `CVAE`, attention, interaction-aware, hierarchical).
 
+## Credits / upstream
 
-## Credits
+Derived from:
+- https://github.com/big-ucl/caveat (commit `af99a43`)
+- License: MIT (see `LICENSE`)
+- Citation metadata: upstream `CITATION.cff`
 
-This package was created with [Cookiecutter](https://github.com/audreyr/cookiecutter) and the [arup-group/cookiecutter-pypackage](https://github.com/arup-group/cookiecutter-pypackage) project template.
+All mistakes are mine; credit for the original project belongs to the upstream authors.
