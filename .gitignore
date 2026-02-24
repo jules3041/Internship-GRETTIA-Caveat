@@ -1,0 +1,17 @@
+logs/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+*.csv
+*.pkl
+caveat/data/*.csv
+.env
+test_gpu.ipynb
+pip_install.ipynb
+*.log
+caveat.egg-info/
+version_*/
+*.ckpt
+*.tfevents*
+tests_jules_ignore/
+tensorboard_metrics.json

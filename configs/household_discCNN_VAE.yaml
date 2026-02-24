@@ -1,0 +1,118 @@
+seed: 12345
+
+logging_params:
+  log_dir: "logs/household_project"
+  name: "household_discCNN_VAE"
+  version_name: "global-kld=0.005-v1"
+
+schedules_path: "data/observed_schedules_w_trips.csv"
+attributes_path: "data/observed_attributes_fixed.csv"
+synthetic_attributes_path: "data/synthethic_attributes.csv"
+
+loader_params:
+  train_batch_size: 330
+  val_batch_size: 330
+  num_workers: 6
+  persistent_workers: True
+  pin_memory: True
+  prefetch_factor: 4
+
+performance_params:
+  matmul_precision: "medium"
+  allow_tf32: true
+  cudnn_benchmark: true
+  cudnn_deterministic: false
+
+encoder_params:
+  name: "household"
+  time_steps: 144
+  attributes_path: "data/observed_attributes_fixed.csv"
+  dataset_params:
+      max_members: 5
+      group_by: "hid"
+      label_cols:
+        - 'age'
+        - 'sex'
+        - 'employed'
+        - 'studies'
+        - 'socioprofessional_class'
+        - 'commute_mode'
+        - 'household_size'
+        - 'number_of_vehicles'
+        - 'income_class'
+        - 'urban_type'
+        - 'departement_id'
+
+experiment_params:
+  LR: 0.001
+  weight_decay: 0.0001
+  kld_weight: 0.1
+  use_activity_weights: true
+scheduler_params:
+  scheduler_name: "ReduceLROnPlateau"
+  mode: "min"        
+  factor: 0.5           
+  patience: 5          
+  min_lr: 0.00001      
+  verbose: true   
+ 
+trainer_params:
+  max_epochs: 200
+  accelerator: "gpu"
+  devices: 1
+  check_val_every_n_epoch: 1
+  patience: 55
+  precision: "16-mixed"
+  log_every_n_steps: 40
+
+checkpoint_params:
+  mode: "train"  # use "ckpt" to run from an existing checkpoint
+  ckpt: "last"   # last/latest/best or a filename in the checkpoints dir
+  ckpt_path: null  # full path to a checkpoint file (overrides ckpt)
+  version_name: null  # overrides logging_params.version_name if set
+  output_tag: null    # subdir under the version folder for outputs
+  run_infer: true
+  run_gen: true
+  run_eval: true
+
+model_params:
+  name: "household_discCNN_VAE"
+  max_members: 5
+  time_steps: 144
+  latent_dim: 6
+  hidden_size: 512
+  num_layers: 5
+  kernel_size: 4
+  stride: 2
+  padding: 1
+  dropout: 0.1
+  kld_annealing_type: "fixed"     
+  kld_annealing_epochs: 150            
+  kld_start_weight: 0.0               
+  kld_max_weight: 0.005
+  use_replicate_padding: false  
+  use_circular_padding: true 
+  use_coordination: true
+  n_coord_blocks: 3
+  coord_kernel_size: [3, 1] 
+  coord_dilation: 1 
+  use_partial_conv: false  
+  use_global_mix: true
+  use_local_mix: false
+baseline_evaluation:
+  enabled: true
+  generate_plots: true
+  target_activities:
+    - "home"
+    - "work"
+    - "shop"
+    - "education"
+    - "escort"
+    - "leisure"
+  joint_trip_evaluation:
+    enabled: true
+    trip_activity_name: "trip"
+    buffer_time_min: 5.0
+    buffer_duration_min: 5.0
+    generate_plots: true
+# il faut fixer le tempogram de droite en rajoutant 4 heures (24 heures à  28 heures) comme ça il peut prédire de 20 à 24h 

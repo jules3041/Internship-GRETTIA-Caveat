@@ -1,0 +1,154 @@
+global:
+  seed: 12345
+  logging_params:
+    log_dir: "logs/cvaes"
+    name: "jw"
+
+  schedules_path: "tmp/nts_home_schedules.csv"
+  attributes_path: "tmp/nts_home_attributes_groups.csv"
+
+  evaluation_params:
+    split_on: [gender, age_group, car_access, work_status, income]
+
+  loader_params:
+    train_batch_size: 1024
+    val_batch_size:  1024
+    num_workers: 8
+
+  trainer_params:
+    min_epochs: 100
+    max_epochs: 200
+    patience: 50
+  
+  experiment_params:
+    LR: 0.002
+    weight_decay: 0.02
+    scheduler_gamma: 0.975
+    kld_weight: 0.005
+    duration_loss_weight: 200
+
+  model_params:
+    name: "CVAESeqLSTM"
+    hidden_n: 6
+    hidden_size: 256
+    labels_hidden_size: 32
+    latent_dim: 6
+    dropout: 0.1
+    teacher_forcing_ratio: 0.5
+    encoder_conditionality: both_concat
+    latent_conditionality: add
+    decoder_conditionality: inputs_concat
+
+  labels_encoder:
+    name: "tokens"
+    weighting: unit
+    joint_weighting: inverse
+    labels:
+      gender: nominal
+      age_group: nominal
+      car_access: nominal
+      work_status: nominal
+      income: nominal
+
+j0invd:
+  encoder_params:
+    name: "sequence"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0.0
+    fix_durations: True
+    trim_eos: True
+    weighting: unit
+    joint_weighting: act_dur_inverse
+
+j1invd:
+  encoder_params:
+    name: "sequence"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0.1
+    fix_durations: True
+    trim_eos: True
+    weighting: unit
+    joint_weighting: act_dur_inverse
+
+j2invd:
+  encoder_params:
+    name: "sequence"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0.2
+    fix_durations: True
+    trim_eos: True
+    weighting: unit
+    joint_weighting: act_dur_inverse
+
+j0inv:
+  encoder_params:
+    name: "sequence"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0.0
+    fix_durations: True
+    trim_eos: True
+    weighting: unit
+    joint_weighting: act_inverse
+
+j1inv:
+  encoder_params:
+    name: "sequence"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0.1
+    fix_durations: True
+    trim_eos: True
+    weighting: unit
+    joint_weighting: act_inverse
+
+j2inv:
+  encoder_params:
+    name: "sequence"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0.2
+    fix_durations: True
+    trim_eos: True
+    weighting: unit
+    joint_weighting: act_inverse
+
+j0unit:
+  encoder_params:
+    name: "sequence"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0.0
+    fix_durations: True
+    trim_eos: True
+    weighting: unit
+    joint_weighting: unit
+
+j1unit:
+  encoder_params:
+    name: "sequence"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0.1
+    fix_durations: True
+    trim_eos: True
+    weighting: unit
+    joint_weighting: unit
+
+j2unit:
+  encoder_params:
+    name: "sequence"
+    max_length: 16
+    norm_duration: 1440
+    jitter: 0.2
+    fix_durations: True
+    trim_eos: True
+    weighting: unit
+    joint_weighting: unit
+
+
+
+

@@ -1,0 +1,210 @@
+seed: 12345
+
+logging_params:
+  log_dir: "logs/household_project"
+  name: "household_discCNN_CVAE_fullattention_interactions_hierarchical"
+  version_name: null
+
+tune:
+  trials: 25
+  prune: true
+  timeout: 28800 
+  max_val_recon: 0.6
+  search_space:
+    model_params.coord_latent_dim: trial.suggest_int("coord_latent_dim", 2, 12, step=2)
+    model_params.coord_mode: trial.suggest_categorical("coord_mode", ["1d", "2d"])
+
+
+schedules_path: "data/caveat_schedules.csv"
+attributes_path: "data/caveat_attributes.csv"
+interactions_path: "data/caveat_interactions.csv"
+synthetic_attributes_path: "data/synthethic_attributes.csv"
+
+
+loader_params:
+  train_batch_size: 300
+  val_batch_size: 300
+  num_workers: 10
+  persistent_workers: true
+  pin_memory: true
+  prefetch_factor: 2
+  val_split: 0.1
+  test_split: 0.1
+performance_params:
+  matmul_precision: "medium"
+  allow_tf32: true
+  cudnn_benchmark: true
+  cudnn_deterministic: false
+
+encoder_params:
+  name: "household_interactions"
+  attributes_path: "data/caveat_attributes.csv"
+  interactions_path: "data/caveat_interactions.csv"
+  time_steps: 144
+  dataset_params:
+    max_members: 5
+    group_by: "hid"
+    discretize_age: true
+    age_bins: [5, 11, 15, 18, 30, 40, 50, 60, 70]
+    label_cols:
+      - 'age'
+      - 'sex'
+      - 'employed'
+      - 'studies'
+      - 'household_size'
+      - 'number_of_vehicles'
+      - 'urban_type'
+    slot_conflict_mode: diversity
+
+
+checkpoint_params:
+  mode: "train"
+  ckpt: "last"
+  ckpt_path: null
+  version_name: null
+  output_tag: null
+  run_infer: true
+  run_gen: true
+  run_eval: true
+
+experiment_params:
+  LR: 0.0001
+  weight_decay: 0.0001
+  kld_weight: 0.01
+  use_activity_weights: true
+
+scheduler_params:
+  scheduler_name: "ReduceLROnPlateau"
+  mode: "min"
+  factor: 0.5
+  patience: 5
+  min_lr: 0.00001
+  verbose: true
+
+trainer_params:
+  max_epochs: 80
+  accelerator: "gpu"
+  devices: 1
+  check_val_every_n_epoch: 1
+  patience: 20
+  precision: "16-mixed"
+  log_every_n_steps: 40
+
+generator_params:
+  interaction_gantt:
+    enabled: true
+    num_households: 10
+
+model_params:
+  name: "household_discCNN_CVAE_fullattention_interactions"
+
+  max_members: 5
+  time_steps: 144
+
+
+  use_hierarchical: true
+  latent_dim: 6           
+  coord_latent_dim: 6      
+  indiv_latent_dim: 8           
+  coord_mode: "1d"                  
+  coord_prior_hidden: 64            
+  hierarchical_delta_hidden: 128   
+
+
+  hidden_size: 512
+  num_layers: 5
+  kernel_size: 4
+  stride: 2
+  padding: 1
+  dropout: 0.1
+  interaction_emb_dim: 8
+  social_loss_weight: 1
+  social_inter_weight: 1.0
+  social_same_weight: 1.0
+  auto_social_inter_pos_weight: true
+  social_inter_pos_weight: 1.0
+  interaction_input_dropout: 0.3
+  use_replicate_padding: false
+  use_circular_padding: true
+
+  use_monkey_patch: false
+  monkey_patch_extra_steps: 24
+  home_activity_index: 0
+  use_coordination: false
+  n_coord_blocks: 2
+  coord_kernel_size: [3, 1]
+  coord_dilation: 1
+  use_global_mix: true
+  use_local_mix: true
+
+  kld_annealing_type: "monotonic"
+  kld_n_cycles: 5
+  kld_cycle_ratio: 0.5
+  kld_annealing_epochs: 10
+  kld_start_weight: 0.0
+  kld_max_weight: 0.01
+  kld_coord_weight: 0.01
+  kld_coord_annealing_type: "monotonic"
+  kld_coord_annealing_epochs: 50
+  kld_coord_start_weight: 0.0
+  kld_coord_max_weight: 0.01
+
+  conditioning_type: "film"
+  label_encoder_mode: "sum"
+  labels_hidden_size: 64
+  conditioning_embed_dim: 16
+  conditioning_hidden_size: 64
+
+  encoder_conditioning: true
+  latent_conditioning: false
+  decoder_conditioning: true
+
+  attn_dim: 32
+  attn_heads: 4
+  attn_ff_mult: 2
+  attn_dropout_attn: 0.1
+  attn_dropout_ff: 0.1
+  attn_dropout_resid: 0.0
+  attn_use_gates: false
+  attn_gate_init: -1.0
+  enc_attn_indices: []
+  dec_attn_indices: [0, 1, 2]
+  enc_post_attn: true
+  dec_post_attn: true
+  log_attention: false
+  log_attention_every_n_steps: 400
+  log_attention_average_heads: true
+  log_attention_hist: false
+  log_attention_images: false
+  log_gates: true
+  log_gates_every_n_steps: 200
+
+  use_gmm_prior: true
+
+baseline_evaluation:
+  enabled: true
+  generate_plots: true
+  latent_plots:
+    enabled: true
+    plot_both_hierarchical_latents: true
+    coord_latent_file: "mus_coord.csv"
+    indiv_latent_file: "mus.csv"
+  target_activities:
+    - "home"
+    - "work"
+    - "shop"
+    - "education"
+    - "leisure"
+    - "trip"
+  interaction_overlap_evaluation:
+    enabled: true
+    generate_plots: true
+    trip_activity_name: "trip"
+    evaluate_test_inference: false
+    evaluate_synthetic: true
+    prob_threshold: 0.5
+  novelty_evaluation:
+    enabled: true
+    test_rate: 0.1
+    seed: 12345
+    batch_size: 300

@@ -1,0 +1,92 @@
+seed: 12345
+
+logging_params:
+  log_dir: "H:/hajjar/code/caveat-household/logs/household_project"
+  name: "household_CVAEContLSTM"
+
+# ======================================================================
+# DATA PATHS (same CSVs as household dataset)
+# ======================================================================
+schedules_path: "H:/hajjar/code/caveat-household/data/observed_schedules_w_trips.csv"
+attributes_path: "H:/hajjar/code/caveat-household/data/observed_attributes_fixed.csv"
+synthetic_attributes_path: "H:/hajjar/code/caveat-household/data/synthethic_attributes.csv"
+
+# ======================================================================
+# LABEL ENCODER (token embeddings per attribute)
+# ======================================================================
+labels_encoder:
+  name: "tokens"
+  weighting: unit
+  joint_weighting: inverse
+  labels:
+    age: nominal
+    sex: nominal
+    employed: nominal
+    studies: nominal
+    socioprofessional_class: nominal
+    commute_mode: nominal
+    household_size: nominal
+    number_of_vehicles: nominal
+    income_class: nominal
+    urban_type: nominal
+    departement_id: nominal
+
+# ======================================================================
+# ENCODER
+# ======================================================================
+encoder_params:
+  name: "continuous"
+  max_length: 48  # max activities per pid ~45 in observed_schedules_w_trips.csv
+  norm_duration: 1440
+  jitter: 0.0
+  fix_durations: stretch
+  trim_eos: True
+  weighting: unit
+  joint_weighting: unit
+
+# ======================================================================
+# DATALOADER
+# ======================================================================
+loader_params:
+  train_batch_size: 1024
+  val_batch_size: 1024
+  num_workers: 8
+  val_split: 0.1
+  test_split: 0.1
+  num_workers: 6
+  persistent_workers: True
+  pin_memory: True
+  prefetch_factor: 4
+
+# ======================================================================
+# TRAINING
+# ======================================================================
+trainer_params:
+  min_epochs: 100
+  max_epochs: 300
+  patience: 50
+  precision: "16-mixed"
+
+model_params:
+  name: "CVAEContLSTM"
+  hidden_n: 4
+  hidden_size: 256
+  labels_hidden_size: 64
+  latent_dim: 6
+  dropout: 0.0
+  teacher_forcing_ratio: 0.5
+  hidden_conditionality: add
+  encoder_conditionality: none
+  latent_conditionality: add
+  decoder_conditionality: none
+performance_params:
+  matmul_precision: "medium"
+  allow_tf32: true
+  cudnn_benchmark: true
+  cudnn_deterministic: false
+experiment_params:
+  LR: 0.001
+  weight_decay: 0.02
+  scheduler_gamma: 0.975
+  kld_weight: 0.01
+  duration_loss_weight: 200

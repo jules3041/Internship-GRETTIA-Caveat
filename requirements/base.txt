@@ -1,0 +1,14 @@
+click
+matplotlib
+zipp
+torch
+pytorch-lightning
+tabulate
+torchvision
+tensorboard
+cml-pam
+pot
+scipy<=1.13
+optuna
+optuna-integration
+optuna-dashboard

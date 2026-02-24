@@ -1,0 +1,172 @@
+# seed: 12345
+
+# logging_params:
+#   log_dir: "logs/household_project"
+#   name: "household_vae"
+
+
+# schedules_path: "caveat/data/observed_schedules.csv"
+# attributes_path: "caveat/data/observed_attributes.csv"
+# synthetic_attributes_path: "caveat/data/synthethic_attributes.csv"
+
+
+# loader_params:
+#   train_batch_size: 256
+#   val_batch_size: 256
+#   num_workers: 13
+
+
+# encoder_params:
+#   name: "household"
+#   time_steps: 144
+#   attributes_path: "caveat/data/observed_attributes.csv"
+#   dataset_params:
+#       max_members: 5
+#       group_by: "hid"
+#       label_cols: ['age','sex','employed','studies','socioprofessional_class','commute_mode','household_size','number_of_vehicles','income_class','urban_type','departement_id']
+
+# experiment_params:
+#   LR: 0.001
+#   weight_decay: 0.02
+#   kld_weight: 0.01    
+#   duration_loss_weight: 0 
+#   scheduler_gamma: 0.95
+
+# optimizer_params:
+#   lr: 0.001        
+#   weight_decay: 0.00001
+
+# trainer_params:
+#   max_epochs: 1         
+#   accelerator: "cpu"
+#   devices: 1         
+#   check_val_every_n_epoch: 1
+#   patience: 10           
+
+# model_params:
+#   name: "household_vae"
+#   max_members: 5
+#   time_steps: 144
+#   latent_dim_hh: 64
+#   latent_dim: 64
+#   label_embedding_dim: 16
+#   hidden_size: 128
+#   slot_embedding_dim: 16      
+#   n_coord_blocks : 1
+#   member_dilation : 1
+
+seed: 12345
+
+logging_params:
+  log_dir: "logs/household_project"
+  name: "household_vae"
+
+schedules_path: "data/observed_schedules_w_trips.csv"
+attributes_path: "data/observed_attributes_fixed.csv"
+synthetic_attributes_path: "data/synthethic_attributes.csv"
+
+loader_params:
+  train_batch_size: 256
+  val_batch_size: 256
+  num_workers: 12
+  persistent_workers: True
+  pin_memory: True
+
+encoder_params:
+  name: "household"
+  time_steps: 144
+  attributes_path: "data/observed_attributes_fixed.csv"
+  dataset_params:
+      max_members: 5
+      group_by: "hid"
+      label_cols: 
+        - 'age'
+        - 'sex'
+        - 'employed'
+        - 'studies'
+        - 'socioprofessional_class'
+        - 'commute_mode'
+        - 'household_size'  
+        - 'number_of_vehicles'
+        - 'income_class'
+        - 'urban_type'
+        - 'departement_id'
+
+experiment_params:
+  LR: 0.001
+  weight_decay: 0.02
+  scheduler_gamma: 0.975
+  kld_weight: 0.5
+  use_activity_weights: true  # Set to false to disable activity weighting in loss  
+  
+# optimizer_params:
+#   lr: 0.001        
+#   weight_decay: 0.00001
+
+# scheduler_params:
+#   scheduler_name: "ReduceLROnPlateau" 
+#   mode: "min"           
+#   factor: 0.5         
+#   patience: 5          
+#   min_lr: 0.00001      
+
+
+trainer_params:
+  max_epochs: 100        
+  accelerator: "gpu"      
+  devices: 1         
+  check_val_every_n_epoch: 1
+  patience: 20          
+
+
+model_params:
+  name: "household_vae"
+  
+
+  max_members: 5
+  time_steps: 144
+  
+
+  latent_dim: 180  
+  latent_dim_hh: 180  
+  
+
+  hidden_size: 64       
+  label_embedding_dim: 8  
+
+
+  use_coordination: true
+  n_coord_blocks: 2
+  member_dilation: 1
+  use_global_mix: true
+  coord_kernel_size: [5, 1]
+  global_mix_ratio: 16
+
+  use_dropout: true
+  dropout_rate: 0.3
+  dropout_locations: ["encoder", "latent", "decoder"]       
+
+
+  encoder_architecture:
+    - { out_channels: 64, kernel: [1, 3], stride: [1, 2], padding: [0, 1] }   # 144 → 72
+    - { out_channels: 128, kernel: [1, 3], stride: [1, 2], padding: [0, 1] }  # 72 → 36
+    - { out_channels: 256, kernel: [1, 3], stride: [1, 2], padding: [0, 1] }  # 36 → 18
+    - { out_channels: 256, kernel: [1, 3], stride: [1, 2], padding: [0, 1] }  # 18 → 9
+
+  decoder_architecture:
+    - { out_channels: 256, kernel: [1, 3], stride: [1, 2], padding: [0, 1], output_padding: [0, 1] }  # 9 → 18
+    - { out_channels: 128, kernel: [1, 3], stride: [1, 2], padding: [0, 1], output_padding: [0, 1] }  # 18 → 36
+    - { out_channels: 64, kernel: [1, 3], stride: [1, 2], padding: [0, 1], output_padding: [0, 1] }   # 36 → 72
+    - { out_channels: 64, kernel: [1, 3], stride: [1, 2], padding: [0, 1], output_padding: [0, 1] }   # 72 → 144
+
+  baseline_evaluation:
+  enabled: true                
+  generate_plots: true         
+baseline_evaluation:
+  enabled: true
+  conditional_evaluation:
+    enabled: true
+    condition_on: ["age", "sex", "employed"]  
+    age_bins: [6, 11, 15, 18, 30, 40, 50, 60, 70] 
+    generate_plots: true
+    target_activities: ["work", "education"]

@@ -1,0 +1,101 @@
+seed: 12345
+
+logging_params:
+  log_dir: "logs/household_project"
+  name: "household_discCNN_VAE_enhanced"
+
+schedules_path: "data/observed_schedules_w_trips.csv"
+attributes_path: "data/observed_attributes_fixed.csv"
+synthetic_attributes_path: "data/synthethic_attributes.csv"
+
+loader_params:
+  train_batch_size: 330
+  val_batch_size: 330
+  num_workers: 4
+  persistent_workers: True
+  pin_memory: True
+  prefetch_factor: 2
+
+encoder_params:
+  name: "household"
+  time_steps: 144
+  attributes_path: "data/observed_attributes_fixed.csv"
+  dataset_params:
+      max_members: 5
+      group_by: "hid"
+      label_cols:
+        - 'age'
+        - 'sex'
+        - 'employed'
+        - 'studies'
+        - 'socioprofessional_class'
+        - 'commute_mode'
+        - 'household_size'
+        - 'number_of_vehicles'
+        - 'income_class'
+        - 'urban_type'
+        - 'departement_id'
+
+experiment_params:
+  LR: 0.001
+  weight_decay: 0.0001
+  kld_weight: 0.1
+  use_activity_weights: true
+
+scheduler_params:
+  scheduler_name: "ReduceLROnPlateau"
+  mode: "min"
+  factor: 0.5
+  patience: 5
+  min_lr: 0.00001
+  verbose: true
+
+trainer_params:
+  max_epochs: 200
+  accelerator: "gpu"
+  devices: 1
+  check_val_every_n_epoch: 1
+  patience: 55
+  precision: "16-mixed"
+  log_every_n_steps: 40
+
+model_params:
+  name: "household_discCNN_VAE_enhanced"
+  max_members: 5
+  time_steps: 144
+  latent_dim: 6
+  hidden_size: 512
+  num_layers: 5
+  kernel_size: 4
+  stride: 2
+  padding: 1
+  dropout: 0.1
+  kld_annealing_type: "monotonic"
+  kld_annealing_epochs: 150
+  kld_start_weight: 0.0
+  kld_max_weight: 0.015
+
+  # ===== NOUVELLES FONCTIONNALITÉS =====
+  # Monkey patch: étend la séquence temporelle avec activité "home"
+  use_monkey_patch: false  # Activer pour étendre de 144 à 168 steps (24h supplémentaires)
+  monkey_patch_extra_steps: 18  # Nombre de steps supplémentaires
+  home_activity_index: 2  # Index de l'activité "home" pour le padding
+
+  # Positional embedding: ajoute des embeddings positionnels temporels
+  use_positional_embedding: false  # Activer pour utiliser le time embedding
+
+  # Padding modes: choisir le mode de padding pour les convolutions
+  use_replicate_padding: false  # Réplique les valeurs aux bords
+  use_circular_padding: true  # Padding circulaire (wrap around)
+  # Note: si les deux sont false, utilise le padding par défaut (zeros)
+
+baseline_evaluation:
+  enabled: true
+  generate_plots: true
+  target_activities:
+    - "home"
+    - "work"
+    - "shop"
+    - "education"
+    - "escort"
+    - "leisure"
